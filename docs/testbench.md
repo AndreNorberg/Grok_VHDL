@@ -4,17 +4,17 @@
 
 ```
 Grok_VHDL/
-  run.py                         # VUnit entry point
+  run.py                         # VUnit entry; simulator = GHDL
   rtl/pulse_extender.vhd         # DUT
   tb/tb_pulse_extender.vhd       # testbench
   docs/                          # this specification
 ```
 
-Simulator is selected in `run.py` (GHDL preferred, NVC acceptable). No vendor sim in v1.
+Simulator: **GHDL only** (`vu = VUnit.from_argv(); ...` with GHDL as the simulator). No NVC, no vendor sim.
 
 ## How the bench is built
 
-One testbench entity `tb_pulse_extender` with the same generic as the DUT:
+One testbench entity `tb_pulse_extender`:
 
 ```
 generic (
@@ -23,7 +23,7 @@ generic (
 );
 ```
 
-The DUT is instantiated once, generic map `G_EXTEND_CYCLES`. VUnit does **not** change a generic at runtime. The three lengths are three **configurations** added in `run.py`:
+DUT instantiated once, generic mapped to `G_EXTEND_CYCLES`. Three VUnit configurations in `run.py`:
 
 | Config name | `G_EXTEND_CYCLES` |
 |-------------|-------------------|
@@ -31,71 +31,93 @@ The DUT is instantiated once, generic map `G_EXTEND_CYCLES`. VUnit does **not** 
 | `extend_5`  | 5 |
 | `extend_10` | 10 |
 
-Each configuration is a separate VUnit test run (own elaboration, own waveform).
+Each configuration elaborates the TB separately. Inside the TB, several named tests run for every configuration (`if run("test_...")`).
 
-Clock: 10 ns period (100 MHz). Period is a TB convenience; the DUT is specified in cycles only.
+Clock: 10 ns period. DUT behaviour is specified in cycles only.
 
 Reset sequence, every test:
 
-1. `i_pulse <= '0'`
-2. `rst_n <= '0'` for 3 rising edges
-3. `rst_n <= '1'`
-4. 2 idle cycles
-5. Assert `o_pulse_extended = '0'` before stimulus
+1. `i_pulse <= '0'`, `i_enable <= '1'`
+2. `rst_n <= '0'` (async). Check `o_pulse_extended = '0'` before the next clock edge
+3. Hold reset ≥ 3 rising edges
+4. `rst_n <= '1'`
+5. 2 idle cycles
+6. Check output still low
 
-Helpers in the TB (procedures):
+Helpers:
 
 | Procedure | Role |
 |-----------|------|
 | `wait_cycles(n)` | Wait `n` rising edges |
 | `pulse_for(n)` | Drive `i_pulse = '1'` for `n` cycles, then `'0'` |
-| `expect_high(n)` | Check `o_pulse_extended = '1'` for `n` consecutive cycles |
-| `expect_low(n)` | Check `o_pulse_extended = '0'` for `n` consecutive cycles |
+| `expect_high(n)` | `check_equal` output `'1'` for `n` consecutive cycles |
+| `expect_low(n)` | `check_equal` output `'0'` for `n` consecutive cycles |
 
-Checks use VUnit `check_equal` on `o_pulse_extended`, sampled after `rising_edge(clk)`.
+Samples after `rising_edge(clk)`, except the async-reset check which is combinational on `rst_n`.
 
-Watchdog: VUnit default test timeout. No extra watchdog process.
+## Test matrix
 
-## Test cases
+Every test below runs under all three configurations. Expected high time: `W + G_EXTEND_CYCLES`. First high output is the cycle after the first enabled high input sample.
 
-All three cases use the same stimulus. Only `G_EXTEND_CYCLES` changes. Expected high time is `W + G_EXTEND_CYCLES` with `W = 1`.
+| Test name | `W` | Enable | Expect |
+|-----------|-----|--------|--------|
+| `test_pulse_width_1` | 1 | held `'1'` | high `1+N` cycles, then low ≥ 3 |
+| `test_pulse_width_3` | 3 | held `'1'` | high `3+N` cycles, then low ≥ 3 |
+| `test_pulse_width_4` | 4 | held `'1'` | high `4+N` cycles, then low ≥ 3 |
+| `test_enable_low_masks_pulse` | 1 | `'0'` during the pulse | output stays low |
+| `test_enable_clears_tail` | 1 | drop enable mid-tail | output low the cycle after enable is sampled `'0'`; stays low after enable returns `'1'` (no leftover count) |
 
-Registered output: the first high output is the cycle *after* the first high input sample.
+`N` = `G_EXTEND_CYCLES`.
 
-### TC1 — `extend_2`
+### `test_pulse_width_1`
 
-- Config: `G_EXTEND_CYCLES = 2`
-- Stimulus: single-cycle `i_pulse`
-- Expect: `o_pulse_extended` high for **3** cycles, then low for at least 3 cycles
-- Also: output low during reset and the 2 idle cycles before the pulse
+Single-cycle `i_pulse`, `i_enable = '1'`.
 
-### TC2 — `extend_5`
+| Config | High cycles |
+|--------|-------------|
+| `extend_2` | 3 |
+| `extend_5` | 6 |
+| `extend_10` | 11 |
 
-- Config: `G_EXTEND_CYCLES = 5`
-- Stimulus: identical to TC1
-- Expect: high for **6** cycles, then low for at least 3 cycles
+### `test_pulse_width_3`
 
-### TC3 — `extend_10`
+`i_pulse` high for 3 cycles.
 
-- Config: `G_EXTEND_CYCLES = 10`
-- Stimulus: identical to TC1
-- Expect: high for **11** cycles, then low for at least 3 cycles
+| Config | High cycles |
+|--------|-------------|
+| `extend_2` | 5 |
+| `extend_5` | 8 |
+| `extend_10` | 13 |
+
+### `test_pulse_width_4`
+
+`i_pulse` high for 4 cycles.
+
+| Config | High cycles |
+|--------|-------------|
+| `extend_2` | 6 |
+| `extend_5` | 9 |
+| `extend_10` | 14 |
+
+### `test_enable_low_masks_pulse`
+
+`i_enable = '0'`, then `pulse_for(1)`, wait `1+N+3` cycles. `o_pulse_extended` must stay `'0'`.
+
+### `test_enable_clears_tail`
+
+`i_enable = '1'`, `pulse_for(1)`, wait until output is high, then set `i_enable = '0'` for 2 cycles, then `i_enable = '1'` again with `i_pulse = '0'`. Output must go low after the disabled sample and must not return high.
 
 ## Pass / fail
 
-A test fails if any `check_equal` fails (wrong level on a sampled cycle) or if the VUnit runner times out.
+Fail: any `check_equal` mismatch, or VUnit timeout.
 
-A test passes only if:
+Pass for width tests: low through async reset + idle; high for exactly `W+N` consecutive cycles; low for 3 cycles after.
 
-- output is low through reset + pre-pulse idle
-- output is high for exactly `1 + G_EXTEND_CYCLES` consecutive cycles after the latency cycle
-- output is low for 3 cycles after that
-
-No coverage of multi-cycle `i_pulse`, back-to-back pulses, or reset-during-stretch in v1.
+Total runs: 3 configs × 5 tests = 15.
 
 ## run.py responsibilities
 
-- Create a VUnit project
+- VUnit project, GHDL
 - Add `rtl/*.vhd` and `tb/*.vhd`
-- Add the three configs on `tb_pulse_extender`
-- Default action: run all three
+- Add configs `extend_2`, `extend_5`, `extend_10`
+- Default action: run all 15
