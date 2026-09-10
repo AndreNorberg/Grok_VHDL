@@ -11,9 +11,11 @@ Arithmetic rule: `std_logic` / `std_logic_vector` + `ieee.numeric_std`. No `std_
 
 ## Run
 
+Install GHDL and put it on `PATH` first: [docs/README.md](docs/README.md) (Linux and Windows).
+
 ```
 pip install -r requirements.txt
-# GHDL on PATH
+ghdl --version
 python3 run.py
 ```
 
