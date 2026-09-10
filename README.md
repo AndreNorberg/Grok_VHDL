@@ -1,2 +1,8 @@
 # Grok_VHDL
-Test repo for Grok to pull and push code to
+
+Demo repository: VHDL `pulse_extender` + VUnit testbench.
+
+Spec (review before RTL):
+
+- [docs/pulse_extender_spec.md](docs/pulse_extender_spec.md)
+- [docs/testbench.md](docs/testbench.md)
