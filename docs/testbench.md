@@ -12,8 +12,6 @@ Grok_VHDL/
 
 Simulator: **GHDL only**. No NVC, no vendor sim.
 
-RTL and TB follow the same arithmetic rule as the DUT spec: `std_logic` / `std_logic_vector` + `ieee.numeric_std`. No `std_logic_arith`.
-
 ## How the bench is built
 
 One testbench entity `tb_pulse_extender`:
@@ -54,7 +52,6 @@ Helpers:
 | `pulse_for(n)` | Drive `i_pulse = '1'` for `n` cycles, then `'0'` |
 | `expect_high(n)` | `check_equal` output `'1'` for `n` consecutive cycles |
 | `expect_low(n)` | `check_equal` output `'0'` for `n` consecutive cycles |
-| `apply_pulse_and_check_width(w)` | Measure the full `W+N` high window starting the cycle after the first sample |
 
 Samples after `rising_edge(clk)`, except the async-reset check which is combinational on `rst_n`.
 
@@ -80,3 +77,5 @@ Total runs: 3 configs × 5 tests = 15.
 - Add `rtl/*.vhd` and `tb/*.vhd`
 - Add configs `extend_2`, `extend_5`, `extend_10`
 - Default action: run all 15
+
+Waveforms: `python3 run.py -g --gtkwave-fmt=ghw <one-test>`. See [README.md](README.md#waveforms-gtkwave).

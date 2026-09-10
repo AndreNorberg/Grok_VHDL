@@ -20,3 +20,11 @@ python3 run.py
 ```
 
 15 tests: configs `extend_2`, `extend_5`, `extend_10` × five cases each.
+
+Waveform (one test, GTKWave):
+
+```
+python3 run.py -g --gtkwave-fmt=ghw lib.tb_pulse_extender.extend_2.test_pulse_width_1
+```
+
+Install GTKWave: [docs/README.md](docs/README.md#waveforms-gtkwave).
