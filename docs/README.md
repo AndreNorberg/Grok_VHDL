@@ -4,13 +4,12 @@ FPGA demo repository: synthesizable VHDL `pulse_extender` plus a VUnit + GHDL te
 
 | Document | Content |
 |----------|---------|
-| [pulse_extender_spec.md](pulse_extender_spec.md) | DUT function, generics, ports, timing |
+| [pulse_extender_spec.md](pulse_extender_spec.md) | DUT function, generics, ports, timing, arithmetic libraries |
 | [testbench.md](testbench.md) | VUnit layout, test matrix, pass/fail rules |
-
-RTL and testbench source follow after this spec is reviewed.
 
 ## Scope (v1)
 
 - Entity `pulse_extender`: async `rst_n`, `i_enable`, pulse stretch by `W + G_EXTEND_CYCLES`
+- Libraries: `std_logic_1164` + `numeric_std`. No `std_logic_arith`
 - VUnit + GHDL
-- Three generic configurations (2 / 5 / 10) and five tests each
+- Three generic configurations (2 / 5 / 10) and five tests each (15 runs)

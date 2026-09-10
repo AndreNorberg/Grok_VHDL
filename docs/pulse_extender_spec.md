@@ -83,14 +83,16 @@ o_pulse_ext    0  0  1  1  1  0  0
 
 Cycle 4 samples `i_enable = '0'` → cycle 5 output is low and the remaining stretch is discarded.
 
-## Implementation notes (constraints for later RTL)
+## Implementation notes
 
 - VHDL-2008
 - Async reset in the clocked process: `if rst_n = '0' then ... elsif rising_edge(clk) then ...`
-- `ieee.std_logic_1164`; `numeric_std` only if the counter is `unsigned`
+- Ports and vector signals: `std_logic` / `std_logic_vector`
+- Arithmetic and counters: `ieee.numeric_std` only (`unsigned` / `signed`, `to_unsigned`, `resize`)
+- Forbidden: `std_logic_arith`, `std_logic_unsigned`, `std_logic_signed`, `std_logic_misc` arithmetic
 - One clock domain
 - No vendor primitives
-- Counter range `0 to G_EXTEND_CYCLES`
+- Counter is `unsigned` with width enough to hold `G_EXTEND_CYCLES`
 
 ## Out of scope (v1)
 
