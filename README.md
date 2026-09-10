@@ -1,8 +1,20 @@
 # Grok_VHDL
 
-Demo repository: VHDL `pulse_extender` + VUnit testbench.
+VHDL `pulse_extender` + VUnit/GHDL testbench.
 
-Spec (review before RTL):
+## Spec
 
 - [docs/pulse_extender_spec.md](docs/pulse_extender_spec.md)
 - [docs/testbench.md](docs/testbench.md)
+
+Arithmetic rule: `std_logic` / `std_logic_vector` + `ieee.numeric_std`. No `std_logic_arith`.
+
+## Run
+
+```
+pip install -r requirements.txt
+# GHDL on PATH
+python3 run.py
+```
+
+15 tests: configs `extend_2`, `extend_5`, `extend_10` × five cases each.
