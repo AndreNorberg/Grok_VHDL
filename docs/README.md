@@ -6,6 +6,7 @@ FPGA demo repository: synthesizable VHDL `pulse_extender` plus a VUnit + GHDL te
 |----------|---------|
 | [pulse_extender_spec.md](pulse_extender_spec.md) | DUT function, generics, ports, timing, arithmetic libraries |
 | [testbench.md](testbench.md) | VUnit layout, test matrix, pass/fail rules |
+| This file | GHDL, PATH, GTKWave |
 
 ## Scope (v1)
 
@@ -142,3 +143,81 @@ ghdl --version
 ```
 
 Do not add `ghdl.exe` itself to `PATH`. Add the directory.
+
+## Waveforms (GTKWave)
+
+Yes. GHDL writes a dump; **GTKWave** displays it. VUnit can start GTKWave after a test (`-g` / `--gui`).
+
+Format for this repo: **GHW** (`--wave=`). It keeps VHDL types (`std_logic`, arrays). VCD works too (`--vcd=`) but drops some VHDL types.
+
+### Dump one test and open GTKWave
+
+`gtkwave` must be on `PATH`. Run **one** test, not the full suite:
+
+```
+python3 run.py -g --gtkwave-fmt=ghw lib.tb_pulse_extender.extend_2.test_pulse_width_1
+```
+
+VUnit 4.7 flags: `-g` / `--gui`, `--gtkwave-fmt={ghw,vcd}`. Later VUnit also accepts `--viewer gtkwave` and `--viewer-fmt ghw`.
+
+If GTKWave does not start, dump only and open the file yourself:
+
+```
+python3 run.py --gtkwave-fmt=ghw lib.tb_pulse_extender.extend_2.test_pulse_width_1
+```
+
+Dump location:
+
+```
+vunit_out/test_output/lib.tb_pulse_extender.extend_2.test_pulse_width_1_<hash>/ghdl/wave.ghw
+```
+
+Exact path is printed in the test output. Then:
+
+```
+gtkwave path/to/wave.ghw
+```
+
+### Signals in GTKWave
+
+1. SST / hierarchy on the left: `tb_pulse_extender` → `dut`
+2. Select `clk`, `rst_n`, `i_enable`, `i_pulse`, `o_pulse_extended` (and `cnt` if you want the stretch counter)
+3. Append / drag them into the wave pane
+4. Time zoom: `+` / `-`, or View → Zoom Full
+5. File → Write Save File (`.gtkw`) if you want the same signal layout next time:
+
+```
+gtkwave wave.ghw view.gtkw
+```
+
+### Install GTKWave
+
+**Linux (Debian / Ubuntu):**
+
+```
+sudo apt-get install -y gtkwave
+gtkwave --version
+```
+
+`apt` puts it on `PATH` already.
+
+**Linux (Fedora):** `sudo dnf install gtkwave`
+
+**Linux (Arch):** `sudo pacman -S gtkwave`
+
+**Windows, standalone:** download a Windows build from [gtkwave/gtkwave](https://github.com/gtkwave/gtkwave) or the older SourceForge packages. Add the folder that contains `gtkwave.exe` to `PATH` (same method as GHDL).
+
+**Windows, MSYS2 MINGW64:**
+
+```
+pacman -S mingw-w64-x86_64-gtkwave
+gtkwave --version
+```
+
+Binary: `C:\msys64\mingw64\bin\gtkwave.exe`. Use the MINGW64 shell, or add that `bin` directory to the Windows `PATH`.
+
+Check from the same terminal as `run.py`:
+
+```
+gtkwave --version
+```
